@@ -273,4 +273,4 @@ HELPER_CTX_WINDOW = 4096
 
 ## Credits
 
-Created by Irzam. Developed for ICHIRO robotics research team at Institut Teknologi Sepuluh Nopember (ITS).
+Created by Irzam. Developed as part of ICHIRO robotics research team's *internship program* at Institut Teknologi Sepuluh Nopember (ITS).
