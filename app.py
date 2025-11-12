@@ -2,7 +2,7 @@ print("Loading...")
 
 import sys
 import utils.config as config
-from utils.functions import log, cleanup_all
+from utils.functions import log, cleanup_all, select_mode
 
 
 def main():
@@ -46,18 +46,12 @@ def main():
 
         store, index, emb = load_rag_system()
         if store is None:
-            log("Error: Failed to load RAG system", echo=True)
+            print("Error: Failed to load RAG system")
             cleanup_all()
             sys.exit(1)
 
         # Mode selection
-        while True:
-            mode_input = input("\nSelect mode: 1) Search 2) Ask 3) Teach: ").strip()
-            if mode_input in ("1", "2", "3"):
-                config.MODE = int(mode_input)
-                print(f"Selected mode {config.MODE}.\n")
-                break
-            print("Invalid. Enter 1, 2, or 3.")
+        select_mode()
 
         # Enter query mode
         query_mode(store, index, emb)

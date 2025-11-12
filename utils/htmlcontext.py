@@ -1,7 +1,10 @@
-import utils.config as config
-from utils.functions import log
 import re
+import json
 import time
+import faiss
+import utils.config as config
+from utils.functions import chat_llm, log
+from sentence_transformers import SentenceTransformer
 from pathlib import Path
 from bs4 import BeautifulSoup, Tag, NavigableString
 
@@ -216,3 +219,273 @@ def clean_html_files():
 
     log(f"Cleaned {count} files", echo=True)
     return count
+
+
+def load_rag_system():
+    """Load the RAG system (index + chunks)."""
+    if not config.OUT_INDEX.exists() or not config.OUT_JSONL.exists():
+        print("Error: Index or JSONL file not found")
+        return None, None, None
+
+    try:
+        store = [json.loads(x) for x in open(config.OUT_JSONL, encoding="utf-8")]
+        index = faiss.read_index(str(config.OUT_INDEX))
+        emb = SentenceTransformer(config.EMB_MODEL)
+        print(f"Loaded {len(store)} chunks")
+        return store, index, emb
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse JSONL file - {e}")
+        return None, None, None
+    except Exception as e:
+        print(f"Error: Failed to load RAG system - {e}")
+        return None, None, None
+
+
+def qemb(q: str, emb):
+    if config.USE_E5:
+        q = f"query: {q}"
+    v = emb.encode([q], normalize_embeddings=True).astype("float32")
+    return v
+
+
+def retrieve(query: str, store, index, emb, k=config.TOP_K):
+    """Retrieve top-k relevant chunks for a query."""
+    if not query or not store or index is None or emb is None:
+        return []
+
+    try:
+        D, I = index.search(qemb(query, emb), k)
+        return [store[i] for i in I[0] if i != -1 and 0 <= i < len(store)]
+    except Exception as e:
+        print(f"Error during retrieval: {e}")
+        return []
+
+
+def should_search_kb(query: str) -> dict:
+    """Decide if the query requires searching the knowledge base."""
+    prompt = f"""You are a query classifier for {config.BOT_NAME}, an intelligent assistant that helps users find information and answer questions about ICHIRO's knowledge base. ICHIRO is a research team from ITS (Institut Teknologi Sepuluh Nopember) that is dedicated to humanoid robotics research. Determine if the following user query requires searching a technical knowledge base or can be answered directly with general conversation.
+
+User Query: {query}
+
+The knowledge base contains technical documentation, guides, setup instructions, coding standards, and engineering documentation.
+
+Instructions:
+- Respond "SEARCH" if the query asks for specific technical information, documentation, how-to guides, or factual knowledge that would be in a knowledge base
+- Respond "DIRECT" if the query is a greeting, casual conversation, general question, or doesn't require specific documentation
+
+Examples:
+- "hi" → DIRECT (greeting)
+- "how are you" → DIRECT (casual)
+- "what can you do" → DIRECT or SEARCH (can be either depending on context)
+- "how to setup git" → SEARCH (technical)
+- "python coding standards" → SEARCH (documentation)
+- "tell me about ROS2" → SEARCH (technical knowledge)
+
+Respond in JSON format:
+{{"action": "SEARCH|DIRECT", "reason": "brief explanation"}}"""
+
+    try:
+        response = chat_llm(prompt, config.HELPER_MODEL, config.HELPER_CTX_WINDOW)
+        json_match = re.search(r"\{[^{}]*\}", response, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            return result
+        if "SEARCH" in response.upper():
+            return {"action": "SEARCH", "reason": "requires knowledge base"}
+        else:
+            return {"action": "DIRECT", "reason": "general conversation"}
+    except json.JSONDecodeError as e:
+        print(f"Warning: JSON parsing error in query classification: {e}")
+        return {"action": "SEARCH", "reason": "classification uncertain"}
+    except Exception as e:
+        print(f"Warning: Error in query classification: {e}")
+        return {"action": "SEARCH", "reason": "classification uncertain"}
+
+
+def assess_confidence(query: str, chunks: list[dict], answer: str) -> dict:
+    """Ask LLM to assess confidence and suggest follow-up queries if needed."""
+    ctx = "\n\n".join(f"- {c['text']}" for c in chunks)
+    prompt = f"""You are assessing whether an answer is well-supported by the context.
+
+Question: {query}
+Answer: {answer}
+
+Context used:
+{ctx}
+
+Instructions:
+1. Rate confidence: HIGH, MEDIUM, or LOW
+   - HIGH: Answer is directly supported by context with clear evidence
+   - MEDIUM: Answer is partially supported but missing some details
+   - LOW: Answer is not well-supported or context is insufficient
+
+2. If confidence is not HIGH, suggest a follow-up search query that could find missing information. Suggest a search query and NOT a command to search one.
+
+Respond in JSON format:
+{{"confidence": "HIGH|MEDIUM|LOW", "reason": "brief explanation", "follow_up_query": "suggested query or null"}}"""
+
+    try:
+        response = chat_llm(prompt, config.HELPER_MODEL, config.HELPER_CTX_WINDOW)
+        json_match = re.search(r"\{[^{}]*\}", response, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group())
+        if "HIGH" in response.upper():
+            return {
+                "confidence": "HIGH",
+                "reason": "parsed from text",
+                "follow_up_query": None,
+            }
+        elif "LOW" in response.upper():
+            return {
+                "confidence": "LOW",
+                "reason": "parsed from text",
+                "follow_up_query": query,
+            }
+        else:
+            return {
+                "confidence": "MEDIUM",
+                "reason": "parsed from text",
+                "follow_up_query": query,
+            }
+    except json.JSONDecodeError as e:
+        print(f"Warning: JSON parsing error in confidence assessment: {e}")
+        return {
+            "confidence": "MEDIUM",
+            "reason": "assessment failed",
+            "follow_up_query": None,
+        }
+    except Exception as e:
+        print(f"Warning: Error in confidence assessment: {e}")
+        return {
+            "confidence": "MEDIUM",
+            "reason": "assessment failed",
+            "follow_up_query": None,
+        }
+
+
+def build_prompt(query: str, chunks: list[dict], iteration: int = 1, mode=1) -> str:
+    ctx = "\n\n".join(f"- {c['text']}" for c in chunks)
+
+    # Search Mode
+    if mode == 1:
+        prompt = f"""You are {config.BOT_NAME}, an intelligent assistant that helps users find information and answer questions about ICHIRO's knowledge base. ICHIRO is a research team from ITS (Institut Teknologi Sepuluh Nopember) that is dedicated to humanoid robotics research. Answer in plain text if possible."""
+
+        if iteration > 1:
+            prompt += f" (iteration {iteration})"
+
+        prompt += f"""
+
+    Context from knowledge base:
+    {ctx}
+
+    Instructions:
+    - Consider the conversation history to understand follow-up questions and references.
+    - Check if the context contains information DIRECTLY relevant to the question.
+    - If it does, use ONLY that information to answer.
+    - If it does not contain relevant information, answer with: "I don't know.", followed by a brief explanation.
+
+    Question: {query}
+    Answer:"""
+
+    # Ask Mode
+    elif mode == 2:
+        prompt = f"""You are {config.BOT_NAME}, an intelligent assistant that answers user questions about ICHIRO's knowledge base. ICHIRO is a research team from ITS (Institut Teknologi Sepuluh Nopember) that is dedicated to humanoid robotics research. Answer in plain text if possible."""
+
+        if iteration > 1:
+            prompt += f" (iteration {iteration})"
+
+        prompt += f"""
+
+    Context from knowledge base:
+    {ctx}
+
+    Instructions:
+    - Consider the conversation history to understand follow-up questions and references.
+    - Check if the context contains information DIRECTLY relevant to the question.
+    - If it does, use ONLY that information to answer.
+    - If it does not contain relevant information, indicate that the information is NOT FOUND in the knowledge base, then answer using your general knowledge if relevant. Answer with: "I don't know.", followed by explanation if you cannot answer.
+
+    Question: {query}
+    Answer:"""
+
+    # Teach Mode
+    elif mode == 3:
+        prompt = f"""You are {config.BOT_NAME}, an intelligent teacher that helps users find information and teach them based on their questions about ICHIRO's knowledge base. ICHIRO is a research team from ITS (Institut Teknologi Sepuluh Nopember) that is dedicated to humanoid robotics research. Answer in plain text if possible."""
+
+        if iteration > 1:
+            prompt += f" (iteration {iteration})"
+
+        prompt += f"""
+
+    Context from knowledge base:
+    {ctx}
+
+    Instructions:
+    - The knowledge base is mostly about learning materials, so your goal is to teach the user based on the provided context.
+    - Consider the conversation history to understand follow-up questions and references.
+    - Check if the context contains information DIRECTLY relevant to the question.
+    - If it does, use that information to tailor your response.
+    - If it does not contain relevant information, indicate that the information is NOT FOUND in the knowledge base, then answer using your general knowledge if applicable. If you do not know, answer with: "I don't know.", followed by a brief explanation.
+
+    Question: {query}
+    Answer:"""
+    return prompt
+
+
+def agentic_rag(
+    query: str, store, index, emb, max_iterations=config.MAX_ITERATIONS, history=None
+) -> tuple[str, list[dict]]:
+    """Iteratively retrieve and refine until confident."""
+    start_time = time.time() if config.VERBOSE else None
+
+    all_chunks = []
+    seen_ids = set()
+    current_query = query
+
+    for iteration in range(1, max_iterations + 1):
+        if iteration > 1:
+            print(f"Refining (iteration {iteration}): {current_query}")
+
+        chunks = retrieve(current_query, store, index, emb, config.TOP_K)
+        if not chunks:
+            if iteration == 1:
+                return "I don't know - no relevant information found.", []
+            break
+
+        new_chunks = [c for c in chunks if c.get("id") and c["id"] not in seen_ids]
+        all_chunks.extend(new_chunks)
+        seen_ids.update(c["id"] for c in new_chunks if "id" in c)
+
+        if iteration == 1:
+            print(f"Retrieved {len(new_chunks)} chunks")
+        elif new_chunks:
+            print(f"Found {len(new_chunks)} more chunks")
+
+        answer = chat_llm(
+            build_prompt(query, all_chunks, iteration, config.MODE), history=history
+        )
+
+        if not answer or answer.startswith("Error:"):
+            print(f"Error getting response from LLM")
+            return (
+                "I encountered an error while processing your query. Please try again.",
+                all_chunks,
+                start_time,
+            )
+
+        assessment = assess_confidence(query, all_chunks, answer)
+        confidence = assessment.get("confidence", "MEDIUM")
+        follow_up = assessment.get("follow_up_query")
+
+        if iteration > 1 or confidence != "HIGH":
+            print(f"Confidence: {confidence}")
+
+        if confidence == "HIGH" or iteration == max_iterations:
+            return answer, all_chunks, start_time
+
+        if follow_up and follow_up != current_query:
+            current_query = follow_up
+        else:
+            return answer, all_chunks, start_time
+
+    return answer, all_chunks, start_time

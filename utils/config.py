@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+# Paths
 WORK_DIR = Path(__file__).parent
 TMP_DIR = WORK_DIR / "rag_tmp"
 HTML_DIR = TMP_DIR / "html"
