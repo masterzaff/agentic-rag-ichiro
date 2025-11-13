@@ -24,7 +24,7 @@ def load_title_map_from_index(index_path: Path) -> dict[str, str]:
                 fname = Path(m.group(1)).name
                 title_map.setdefault(fname, a.get_text(" ", strip=True) or fname)
     except Exception as e:
-        log(f"Warning: Failed to load title map: {e}", echo=False)
+        print(f"Warning: Failed to load title map: {e}")
 
     return title_map
 
@@ -184,7 +184,7 @@ def clean_file(path: Path, title_map: dict) -> str:
         body = re.sub(r"\n{3,}", "\n\n", body)
         return body
     except Exception as e:
-        log(f"Warning: Failed to clean {path.name}: {e}", echo=False)
+        print(f"Warning: Failed to clean {path.name}: {e}")
         return ""
 
 
@@ -196,11 +196,11 @@ def clean_html_files():
         p for p in config.HTML_DIR.rglob("*.html") if p.name.lower() != "index.html"
     ]
     if not files:
-        log("No HTML files found", echo=True)
+        print("No HTML files found")
         return 0
 
     title_map = load_title_map_from_index(config.INDEX_FILE)
-    log(f"Cleaning {len(files)} HTML files...", echo=True)
+    print(f"Cleaning {len(files)} HTML files...")
 
     count = 0
     for f in files:
@@ -211,13 +211,13 @@ def clean_html_files():
                 )
                 count += 1
         except Exception as e:
-            log(f"Warning: Failed to save {f.name}: {e}", echo=False)
+            print(f"Warning: Failed to save {f.name}: {e}")
 
     if count == 0:
-        log("No files cleaned", echo=True)
+        print("No files cleaned")
         return 0
 
-    log(f"Cleaned {count} files", echo=True)
+    print(f"Cleaned {count} files")
     return count
 
 

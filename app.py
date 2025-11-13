@@ -42,7 +42,8 @@ def main():
     else:
         # Load RAG system
         log("\nLoading RAG system...")
-        from utils.query import load_rag_system, query_mode
+        from utils.htmlcontext import load_rag_system
+        from utils.query import query_mode
 
         store, index, emb = load_rag_system()
         if store is None:

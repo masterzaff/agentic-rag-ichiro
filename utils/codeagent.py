@@ -58,10 +58,10 @@ Respond in JSON format:
         else:
             return {"action": "DIRECT", "reason": "general programming question"}
     except json.JSONDecodeError as e:
-        log(f"Warning: JSON parsing error in query classification: {e}", echo=False)
+        print(f"Warning: JSON parsing error in query classification: {e}")
         return {"action": "SEARCH_CODE", "reason": "classification uncertain"}
     except Exception as e:
-        log(f"Warning: Error in query classification: {e}", echo=False)
+        print(f"Warning: Error in query classification: {e}")
         return {"action": "SEARCH_CODE", "reason": "classification uncertain"}
 
 
@@ -117,14 +117,14 @@ Respond in JSON format:
                 "suggestion": None,
             }
     except json.JSONDecodeError as e:
-        log(f"Warning: JSON parsing error in confidence assessment: {e}", echo=False)
+        print(f"Warning: JSON parsing error in confidence assessment: {e}")
         return {
             "confidence": "MEDIUM",
             "reason": "assessment failed",
             "suggestion": None,
         }
     except Exception as e:
-        log(f"Warning: Error in confidence assessment: {e}", echo=False)
+        print(f"Warning: Error in confidence assessment: {e}")
         return {
             "confidence": "MEDIUM",
             "reason": "assessment failed",
@@ -155,7 +155,7 @@ def agentic_code_search(
 
     for iteration in range(1, max_iterations + 1):
         if iteration > 1:
-            log(f"Refining search (iteration {iteration}): {current_query}", echo=True)
+            print(f"Refining search (iteration {iteration}): {current_query}")
 
         # STAGE 1: LLM selects files
         file_list = []
@@ -217,9 +217,9 @@ Set "sufficient": true if already analyzed files are enough to answer the questi
                 sufficient = data.get("sufficient", False)
                 reasoning = data.get("reasoning", "")
                 if reasoning and iteration == 1:
-                    log(f"Selection: {reasoning}", echo=True)
+                    print(f"Selection: {reasoning}")
         except json.JSONDecodeError as e:
-            log(f"Warning: JSON parsing error in file selection: {e}", echo=False)
+            print(f"Warning: JSON parsing error in file selection: {e}")
             # Fallback: crude extraction
             for file_info in file_index:
                 if (
@@ -228,7 +228,7 @@ Set "sufficient": true if already analyzed files are enough to answer the questi
                 ):
                     selected_files.append(file_info["path"])
         except Exception as e:
-            log(f"Warning: Error in file selection: {e}", echo=False)
+            print(f"Warning: Error in file selection: {e}")
             # Fallback: crude extraction
             for file_info in file_index:
                 if (
@@ -250,19 +250,19 @@ Set "sufficient": true if already analyzed files are enough to answer the questi
         if sufficient or not selected_files:
             # LLM thinks we have enough info
             if iteration > 1:
-                log(f"Sufficient context gathered", echo=True)
+                print(f"Sufficient context gathered")
             break
 
         # STAGE 2: Load the selected files
         if iteration == 1:
-            log(f"Loading {len(selected_files)} files...", echo=True)
+            print(f"Loading {len(selected_files)} files...")
         else:
-            log(f"Loading {len(selected_files)} additional files...", echo=True)
+            print(f"Loading {len(selected_files)} additional files...")
 
         for file_path in selected_files:
             if file_path in file_memory:
                 content = file_memory[file_path]
-                log(f"  - {file_path} (cached)", echo=True)
+                print(f"  - {file_path} (cached)")
             else:
                 try:
                     full_path = config.CODEBASE_DIR / file_path
@@ -280,18 +280,18 @@ Set "sufficient": true if already analyzed files are enough to answer the questi
                             )
 
                         file_memory[file_path] = content
-                        log(f"  - {file_path} (loaded)", echo=True)
+                        print(f"  - {file_path} (loaded)")
                     else:
-                        log(f"  - {file_path} (not found)", echo=True)
+                        print(f"  - {file_path} (not found)")
                         continue
                 except UnicodeDecodeError as e:
-                    log(f"  - {file_path} (encoding error: {e})", echo=True)
+                    print(f"  - {file_path} (encoding error: {e})")
                     continue
                 except PermissionError as e:
-                    log(f"  - {file_path} (permission denied: {e})", echo=True)
+                    print(f"  - {file_path} (permission denied: {e})")
                     continue
                 except Exception as e:
-                    log(f"  - {file_path} (error: {e})", echo=True)
+                    print(f"  - {file_path} (error: {e})")
                     continue
 
             all_file_contents.append({"path": file_path, "content": content})
@@ -336,7 +336,7 @@ Answer:"""
         suggestion = assessment.get("suggestion")
 
         if iteration > 1 or confidence != "HIGH":
-            log(f"Confidence: {confidence}", echo=True)
+            print(f"Confidence: {confidence}")
 
         if confidence == "HIGH" or iteration == max_iterations:
             return answer, all_file_contents, file_memory

@@ -3,7 +3,7 @@ import utils.config as config
 import shutil
 
 
-def log(msg, echo=False):
+def log(msg):
     """Print message if verbose is True."""
     if config.VERBOSE:
         print(msg)

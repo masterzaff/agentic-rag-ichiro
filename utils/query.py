@@ -7,8 +7,7 @@ from utils.htmlcontext import agentic_rag, should_search_kb
 def query_mode(store, index, emb):
     """Interactive query mode."""
     print(
-        f"\nRAG ready with {len(store)} chunks. Ctrl+C or '/quit' to exit. '/mode' to change query mode.\n",
-        echo=True,
+        f"\nRAG ready with {len(store)} chunks. Type '/help' for commands.\n",
     )
 
     # Conversation history (keep last N exchanges)
@@ -23,8 +22,19 @@ def query_mode(store, index, emb):
             if q.lower().startswith("/exit") or q.lower().startswith("/quit"):
                 print("Exiting query mode.")
                 break
+            elif q.lower().startswith("/help"):
+                print("\nAvailable commands:")
+                print("  /mode            - Change query mode")
+                print("  /clear           - Clear conversation history")
+                print("  /help            - Show this help")
+                print("  /exit or /quit   - Exit codebase query mode\n")
+                continue
             elif q.lower().startswith("/mode"):
                 select_mode()
+                continue
+            elif q.lower().startswith("/clear"):
+                history.clear()
+                print("History cleared.\n")
                 continue
             else:
                 print("Unknown command.\n")
@@ -58,12 +68,10 @@ Answer:"""
                 elapsed = time.time() - start_time
                 print(
                     f"\nAnswer (from {len(chunks)} chunks, {unique_docs} docs):\n{answer} [RAG: {elapsed:.2f}s]\n",
-                    echo=True,
                 )
             else:
                 print(
                     f"\nAnswer (from {len(chunks)} chunks, {unique_docs} docs):\n{answer} \n",
-                    echo=True,
                 )
 
         # Add to history (keep only main messages, not full context)
@@ -94,7 +102,6 @@ def query_code():
 
     print(
         f"\nCodebase query ready with {len(files)} files. Type '/help' for commands.\n",
-        echo=True,
     )
 
     # File content memory cache (path -> content)
@@ -142,13 +149,13 @@ def query_code():
                 print("\nAvailable commands:")
                 print(
                     "  /ls [path]       - List files (optionally in a specific path)",
-                    echo=True,
                 )
                 print("  /read <file>     - Read a specific file")
                 print("  /search <term>   - Search for files containing term")
                 print("  /tree            - Show directory tree")
                 print("  /memory          - Show cached files in memory")
-                print("  /clear           - Clear file memory cache")
+                print("  /wipe            - Wipe file memory cache")
+                print("  /clear           - Clear conversation history")
                 print("  /help            - Show this help")
                 print("  /exit or /quit   - Exit codebase query mode\n")
                 continue
@@ -161,9 +168,13 @@ def query_code():
                     print("\nNo files in memory cache.")
                 print("")
                 continue
-            elif q.lower().startswith("/clear"):
+            elif q.lower().startswith("/wipe"):
                 file_memory.clear()
-                print("Memory cache cleared.\n")
+                print("Memory cache wiped.\n")
+                continue
+            elif q.lower().startswith("/clear"):
+                history.clear()
+                print("History cleared.\n")
                 continue
             elif q.lower().startswith("/ls"):
                 parts = q.split(maxsplit=1)
@@ -220,14 +231,12 @@ def query_code():
                 if matching_files:
                     print(
                         f"\nFound '{search_term}' in {len(matching_files)} files:",
-                        echo=True,
                     )
                     for f in matching_files[:20]:
                         print(f"  {f}")
                     if len(matching_files) > 20:
                         print(
                             f"  ... and {len(matching_files) - 20} more files",
-                            echo=True,
                         )
                 else:
                     print(f"No files found containing '{search_term}'")
@@ -259,7 +268,6 @@ def query_code():
                         if len(tree[dir_path]) > 5:
                             print(
                                 f"    ... and {len(tree[dir_path]) - 5} more files",
-                                echo=True,
                             )
 
                 if len(tree) > 21:
@@ -378,13 +386,11 @@ Answer:"""
                         elapsed = time.time() - start_time
                         print(
                             f"\nAnswer (analyzed {len(analyzed_files)} files: {file_list}):",
-                            echo=True,
                         )
                         print(f"{answer} [Time: {elapsed:.2f}s]\n")
                     else:
                         print(
                             f"\nAnswer (analyzed {len(analyzed_files)} files: {file_list}):",
-                            echo=True,
                         )
                         print(f"{answer}\n")
                 else:

@@ -56,10 +56,10 @@ def ingest_documents():
     """Build chunks and index from DATA_DIR."""
     files = sorted(config.DATA_DIR.rglob("*.txt"))
     if not files:
-        log("No .txt files found", echo=True)
+        print("No .txt files found")
         return False
 
-    log(f"Building chunks from {len(files)} documents...", echo=True)
+    print(f"Building chunks from {len(files)} documents...")
 
     # Create chunks
     chunks = []
@@ -80,7 +80,7 @@ def ingest_documents():
                     }
                 )
         except Exception as e:
-            log(f"Warning: Failed to process {f.name}: {e}", echo=False)
+            print(f"Warning: Failed to process {f.name}: {e}", echo=False)
 
     # Deduplicate
     seen = set()
@@ -91,14 +91,14 @@ def ingest_documents():
             unique.append(c)
 
     if not unique:
-        log("No chunks created", echo=True)
+        print("No chunks created")
         return False
 
-    log(f"Created {len(unique)} chunks", echo=True)
+    print(f"Created {len(unique)} chunks")
 
     # Embed & index
     try:
-        log(f"Embedding with {config.EMB_MODEL}...", echo=True)
+        print(f"Embedding with {config.EMB_MODEL}...")
         model = SentenceTransformer(config.EMB_MODEL)
         vecs = embed_passages(model, [c["text"] for c in unique])
 
@@ -110,8 +110,8 @@ def ingest_documents():
             for c in unique:
                 f.write(json.dumps(c, ensure_ascii=False) + "\n")
 
-        log(f"Saved {len(unique)} chunks", echo=True)
+        print(f"Saved {len(unique)} chunks")
         return True
     except Exception as e:
-        log(f"Error during indexing: {e}", echo=True)
+        print(f"Error during indexing: {e}")
         return False

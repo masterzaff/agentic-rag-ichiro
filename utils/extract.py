@@ -11,7 +11,7 @@ def extract_zip(zip_path: Path, target_folder: str = None) -> bool:
     msg = f"Extracting {zip_path.name}..."
     if target_folder:
         msg += f" (folder: {target_folder})"
-    log(msg, echo=True)
+    print(msg)
 
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -24,7 +24,7 @@ def extract_zip(zip_path: Path, target_folder: str = None) -> bool:
                 ]
 
                 if not members:
-                    log(f"No files found in '{target_folder}'", echo=True)
+                    print(f"No files found in '{target_folder}'")
                     return False
 
                 config.TEMP_EXTRACT_DIR.mkdir(parents=True, exist_ok=True)
@@ -32,50 +32,50 @@ def extract_zip(zip_path: Path, target_folder: str = None) -> bool:
 
                 source_path = config.TEMP_EXTRACT_DIR / target_folder
                 if not source_path.exists():
-                    log(f"Folder '{target_folder}' not found", echo=True)
+                    print(f"Folder '{target_folder}' not found")
                     return False
 
                 config.HTML_DIR.mkdir(parents=True, exist_ok=True)
                 html_files = list(source_path.rglob("*.html"))
 
                 if not html_files:
-                    log(f"No HTML files in '{target_folder}'", echo=True)
+                    print(f"No HTML files in '{target_folder}'")
                     return False
 
                 for file in html_files:
                     shutil.copy2(file, config.HTML_DIR / file.name)
 
                 shutil.rmtree(config.TEMP_EXTRACT_DIR)
-                log(f"Extracted {len(html_files)} HTML files", echo=True)
+                print(f"Extracted {len(html_files)} HTML files")
             else:
                 zip_ref.extractall(config.HTML_DIR)
-                log(f"Extracted to {config.HTML_DIR}", echo=True)
+                print(f"Extracted to {config.HTML_DIR}")
 
         return True
     except Exception as e:
-        log(f"Failed to extract: {e}", echo=True)
+        print(f"Failed to extract: {e}")
         return False
 
 
 def copy_html_folder(src: Path) -> bool:
     """Copy HTML files from source folder to HTML_DIR."""
-    log(f"Copying files from {src}...", echo=True)
+    print(f"Copying files from {src}...")
 
     try:
         config.HTML_DIR.mkdir(parents=True, exist_ok=True)
         html_files = list(src.rglob("*.html"))
 
         if not html_files:
-            log(f"No HTML files found in {src}", echo=True)
+            print(f"No HTML files found in {src}")
             return False
 
         for file in html_files:
             shutil.copy2(file, config.HTML_DIR / file.name)
 
-        log(f"Copied {len(html_files)} HTML files", echo=True)
+        print(f"Copied {len(html_files)} HTML files")
         return True
     except Exception as e:
-        log(f"Failed to copy: {e}", echo=True)
+        print(f"Failed to copy: {e}")
         return False
 
 
@@ -85,17 +85,17 @@ def add_context(input_path: str, target_folder: str = None):
 
     # Handle GitHub URLs
     if gc.is_github_url(input_path):
-        log(f"Fetching repository: {input_path}", echo=True)
+        print(f"Fetching repository: {input_path}")
         if gc.fetch_github_repo(input_path, target_folder):
-            log("Codebase ready", echo=True)
+            print("Codebase ready")
             return True, True
-        log("Failed to fetch repository", echo=True)
+        print("Failed to fetch repository")
         return False, True
 
     # Handle local files
     input_p = Path(input_path)
     if not input_p.exists():
-        log(f"Error: {input_path} not found", echo=True)
+        print(f"Error: {input_path} not found")
         return False, False
 
     # Clean up and prepare
@@ -110,7 +110,7 @@ def add_context(input_path: str, target_folder: str = None):
     elif input_p.is_dir():
         success = copy_html_folder(input_p)
     else:
-        log(f"Error: {input_path} must be .zip or directory", echo=True)
+        print(f"Error: {input_path} must be .zip or directory")
         return False, False
 
     if not success:
@@ -124,5 +124,5 @@ def add_context(input_path: str, target_folder: str = None):
         return False, False
 
     size_kb = config.OUT_INDEX.stat().st_size // 1024
-    log(f"\nIndex ready: {size_kb}KB", echo=True)
+    print(f"\nIndex ready: {size_kb}KB")
     return True, False

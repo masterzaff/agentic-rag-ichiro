@@ -14,10 +14,10 @@ def copy_codebase_folder(src: Path) -> bool:
             shutil.rmtree(config.CODEBASE_DIR)
         # Use copytree to preserve structure
         shutil.copytree(src, config.CODEBASE_DIR)
-        log(f"Copied codebase to {config.CODEBASE_DIR}", echo=True)
+        print(f"Copied codebase to {config.CODEBASE_DIR}")
         return True
     except Exception as e:
-        log(f"Failed to copy codebase: {e}", echo=True)
+        print(f"Failed to copy codebase: {e}")
         return False
 
 
@@ -52,7 +52,7 @@ def parse_github_url(url: str) -> tuple[str, str, str, str | None]:
 def download_github_archive(owner: str, repo: str, branch: str) -> Path | None:
     """Download a GitHub archive zip for given owner/repo/branch into TEMP_EXTRACT_DIR and return path to zip or None."""
     if not owner or not repo:
-        log("Error: Invalid owner or repository name", echo=True)
+        print("Error: Invalid owner or repository name")
         return None
 
     config.TEMP_EXTRACT_DIR.mkdir(parents=True, exist_ok=True)
@@ -65,7 +65,7 @@ def download_github_archive(owner: str, repo: str, branch: str) -> Path | None:
         )
     for url in urls_to_try:
         try:
-            log(f"Downloading {url}...", echo=True)
+            print(f"Downloading {url}...")
             r = requests.get(url, stream=True, timeout=60)
             if r.status_code == 200:
                 with open(zip_path, "wb") as fh:
@@ -73,13 +73,13 @@ def download_github_archive(owner: str, repo: str, branch: str) -> Path | None:
                         fh.write(chunk)
                 return zip_path
             else:
-                log(f"Download failed: {r.status_code} {url}", echo=True)
+                print(f"Download failed: {r.status_code} {url}")
         except requests.exceptions.Timeout:
-            log(f"Download timeout: {url}", echo=True)
+            print(f"Download timeout: {url}")
         except requests.exceptions.RequestException as e:
-            log(f"Download error: {e}", echo=True)
+            print(f"Download error: {e}")
         except Exception as e:
-            log(f"Unexpected error during download: {e}", echo=True)
+            print(f"Unexpected error during download: {e}")
     return None
 
 
@@ -95,12 +95,12 @@ def fetch_github_repo(repo_url: str, target_folder: str | None = None) -> bool:
             owner, repo = parts[0], parts[1]
             branch = "main"
         else:
-            log("Unsupported GitHub URL format", echo=True)
+            print("Unsupported GitHub URL format")
             return False
 
     zip_path = download_github_archive(owner, repo, branch)
     if not zip_path or not zip_path.exists():
-        log("Failed to download repository archive", echo=True)
+        print("Failed to download repository archive")
         return False
 
     try:
@@ -114,7 +114,7 @@ def fetch_github_repo(repo_url: str, target_folder: str | None = None) -> bool:
             # Archive root folder name is repo-branch
             root_candidates = list(config.TEMP_EXTRACT_DIR.iterdir())
             if not root_candidates:
-                log("Archive empty", echo=True)
+                print("Archive empty")
                 return False
             root = root_candidates[0]
 
@@ -123,7 +123,7 @@ def fetch_github_repo(repo_url: str, target_folder: str | None = None) -> bool:
             if sub:
                 sub_path = root / sub
                 if not sub_path.exists():
-                    log(f"Subfolder '{sub}' not found in archive", echo=True)
+                    print(f"Subfolder '{sub}' not found in archive")
                     return False
                 # copy the subfolder as codebase
                 if config.CODEBASE_DIR.exists():
@@ -135,17 +135,17 @@ def fetch_github_repo(repo_url: str, target_folder: str | None = None) -> bool:
                     shutil.rmtree(config.CODEBASE_DIR)
                 shutil.copytree(root, config.CODEBASE_DIR)
 
-        log(f"Fetched GitHub repo to {config.CODEBASE_DIR}", echo=True)
+        print(f"Fetched GitHub repo to {config.CODEBASE_DIR}")
         return True
     except Exception as e:
-        log(f"Failed to extract repo archive: {e}", echo=True)
+        print(f"Failed to extract repo archive: {e}")
         return False
 
 
 def codebase_ls(rel_path: str = "") -> list[str]:
     base_path = config.CODEBASE_DIR / rel_path
     if not base_path.exists() or not base_path.is_dir():
-        log(f"Path '{rel_path}' not found in codebase.", echo=True)
+        print(f"Path '{rel_path}' not found in codebase.")
         return []
     return sorted(
         [
