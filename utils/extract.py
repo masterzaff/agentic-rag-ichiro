@@ -81,7 +81,7 @@ def copy_html_folder(src: Path) -> bool:
 
 def add_context(input_path: str, target_folder: str = None):
     """Add context from zip, folder, or GitHub URL."""
-    import utils.codecontext as gc
+    import main.codecontext as gc
 
     # Handle GitHub URLs
     if gc.is_github_url(input_path):
@@ -117,7 +117,7 @@ def add_context(input_path: str, target_folder: str = None):
         return False, False
 
     # Clean and ingest
-    from utils.htmlcontext import clean_html_files
+    from main.htmlcontext import clean_html_files
     from utils.ingest import ingest_documents
 
     if clean_html_files() == 0 or not ingest_documents():

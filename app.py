@@ -36,14 +36,14 @@ def main():
         sys.exit(1)
 
     if is_codebase:
-        from utils.query import query_code
+        from main.query import query_code
 
         query_code()
     else:
         # Load RAG system
         log("\nLoading RAG system...")
-        from utils.htmlcontext import load_rag_system
-        from utils.query import query_mode
+        from main.htmlcontext import load_rag_system
+        from main.query import query_mode
 
         store, index, emb = load_rag_system()
         if store is None:

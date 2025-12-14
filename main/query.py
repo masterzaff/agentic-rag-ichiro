@@ -1,7 +1,7 @@
 import time
 import utils.config as config
 from utils.functions import log, select_mode, chat_llm
-from utils.htmlcontext import agentic_rag, should_search_kb
+from main.htmlcontext import agentic_rag, should_search_kb
 
 
 def query_mode(store, index, emb):
@@ -87,12 +87,12 @@ Answer:"""
             history.pop(0)
 
 
-from utils.codeagent import should_search_codebase, agentic_code_search
+from main.codeagent import should_search_codebase, agentic_code_search
 
 
 def query_code():
     """Interactive codebase query mode with intelligent file selection and memory."""
-    from utils.codecontext import codebase_ls
+    from main.codecontext import codebase_ls
     from pathlib import Path
 
     files = codebase_ls()
