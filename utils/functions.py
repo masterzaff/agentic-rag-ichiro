@@ -1,6 +1,7 @@
 import requests
 import utils.config as config
 import shutil
+import os
 
 
 def log(msg):
@@ -34,7 +35,7 @@ def select_mode():
 def chat_llm(
     prompt: str, model=config.CHAT_MODEL, ctx=config.CHAT_CTX_WINDOW, history=None
 ) -> str:
-    """Send prompt to Ollama and get response."""
+    """Send prompt to LLM and get response (supports both Ollama and external APIs)."""
     messages = []
     if history:
         for h in history:
@@ -43,24 +44,57 @@ def chat_llm(
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = requests.post(
-            f"{config.OLLAMA_URL}/api/chat",
-            json={
+        if config.USE_EXTERNAL_API:
+            # Use OpenAI-compatible API
+            if not config.EXTERNAL_API_KEY:
+                return "Error: API key not set. Set EXTERNAL_API_KEY or OPENAI_API_KEY environment variable, or set EXTERNAL_API_KEY in config.py."
+
+            headers = {
+                "Authorization": f"Bearer {config.EXTERNAL_API_KEY}",
+                "Content-Type": "application/json",
+            }
+
+            payload = {
                 "model": model,
                 "messages": messages,
-                "stream": False,
-                "options": {"num_ctx": ctx},
-            },
-            timeout=180,
-        )
-        r.raise_for_status()
-        return r.json()["message"]["content"].strip()
+                "max_tokens": ctx,
+            }
+
+            r = requests.post(
+                config.EXTERNAL_API_URL,
+                headers=headers,
+                json=payload,
+                timeout=180,
+            )
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"].strip()
+        else:
+            # Use local Ollama
+            r = requests.post(
+                f"{config.OLLAMA_URL}/api/chat",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"num_ctx": ctx},
+                },
+                timeout=180,
+            )
+            r.raise_for_status()
+            return r.json()["message"]["content"].strip()
     except Exception as e:
         error_msg = str(e)
         if "timeout" in error_msg.lower():
             print("Error: Request timed out")
         elif "connection" in error_msg.lower():
-            print("Error: Cannot connect to Ollama")
+            if config.USE_EXTERNAL_API:
+                print("Error: Cannot connect to external API")
+            else:
+                print("Error: Cannot connect to Ollama")
         else:
             print(f"Error: {error_msg}")
         return f"Error: {error_msg}"
+
+
+# embed text using Jina API
+# def embed_text(text: str):

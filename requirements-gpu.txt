@@ -1,7 +1,7 @@
+numpy
 faiss-cpu
 sentence-transformers
-numpy
 rich
-bs4
+beautifulsoup4
 lxml
 requests
