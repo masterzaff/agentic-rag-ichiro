@@ -37,11 +37,11 @@ fi
 
 # Install dependencies using the venv's pip
 echo "Installing dependencies from requirements-gpu.txt"
-".venv/bin/pip" install --upgrade pip
-".venv/bin/pip" install -r requirements-gpu.txt
+"venv/bin/pip" install --upgrade pip
+"venv/bin/pip" install -r requirements-gpu.txt
 
 echo "Setup complete. To activate the environment, run:"
-echo "  source .venv/bin/activate"
+echo "  source venv/bin/activate"
 
 # Delete setup file after installation
 SCRIPT_PATH="$(readlink -f "$0")"
