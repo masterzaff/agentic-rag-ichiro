@@ -42,3 +42,7 @@ echo "Installing dependencies from requirements-gpu.txt"
 
 echo "Setup complete. To activate the environment, run:"
 echo "  source .venv/bin/activate"
+
+# Delete setup file after installation
+SCRIPT_PATH="$(readlink -f "$0")"
+rm -f "$SCRIPT_PATH"

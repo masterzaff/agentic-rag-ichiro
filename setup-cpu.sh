@@ -42,3 +42,6 @@ echo "Installing dependencies from requirements-cpu.txt"
 
 echo "Setup complete. To activate the environment, run:"
 echo "  source .venv/bin/activate"
+
+SCRIPT_PATH="$(readlink -f "$0")"
+rm -f "$SCRIPT_PATH"

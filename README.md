@@ -16,13 +16,13 @@ A powerful command-line RAG (Retrieval-Augmented Generation) system for querying
 Run the setup script for CPU (smaller environment size):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/masterzaff/agentic-rag-ichiro/main/setup-cpu.sh -o setup.sh && bash setup.sh
+curl -fsSL https://raw.githubusercontent.com/masterzaff/agentic-rag-ichiro/main/setup-cpu.sh -o setup-cpu.sh && bash setup-cpu.sh
 ```
 
 Run the setup script for GPU (faster execution time):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/masterzaff/agentic-rag-ichiro/main/setup-gpu.sh -o setup.sh && bash setup.sh
+curl -fsSL https://raw.githubusercontent.com/masterzaff/agentic-rag-ichiro/main/setup-gpu.sh -o setup-gpu.sh && bash setup-gpu.sh
 ```
 
 This fetches setup.sh, copies .env.example to .env if missing, creates .venv, and installs requirements. You can swap the URL for your own gist/raw link if you prefer.
