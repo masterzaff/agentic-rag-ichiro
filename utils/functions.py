@@ -94,7 +94,3 @@ def chat_llm(
         else:
             print(f"Error: {error_msg}")
         return f"Error: {error_msg}"
-
-
-# embed text using Jina API
-# def embed_text(text: str):

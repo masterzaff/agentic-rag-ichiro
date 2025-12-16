@@ -1,47 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Edit this URL to the repository you want to clone (must be git-compatible)
-REPO_URL="https://github.com/masterzaff/agentic-rag-ichiro.git"
-
-# Derive repo directory name from URL (strip trailing .git if present)
+# Config
+REPO_URL="https://github.com/ichiro-its/kaito.git"
 REPO_DIR="$(basename "${REPO_URL%.git}")"
 
-# Clone if the directory does not already exist
+echo "== Kaito CPU setup =="
+
+# Clone repo if needed
 if [ ! -d "$REPO_DIR" ]; then
   echo "Cloning $REPO_URL ..."
   git clone "$REPO_URL"
 else
-  echo "Directory $REPO_DIR already exists; skipping clone."
+  echo "Directory '$REPO_DIR' already exists; skipping clone."
 fi
 
 echo "Entering $REPO_DIR"
 cd "$REPO_DIR"
 
-# Copy environment template if .env is missing
+# Environment file
 if [ ! -f .env ] && [ -f .env.example ]; then
-
   echo "Creating .env from .env.example"
   cp .env.example .env
 else
-  echo ".env already exists or .env.example missing; skipping copy."
+  echo ".env already exists or .env.example missing; skipping."
 fi
 
-# Create virtual environment
-if [ ! -d .venv ]; then
-  echo "Creating virtual environment (.venv)"
+# Python & venv
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: python3 not found. Please install Python 3 first."
+  exit 1
+fi
+
+if [ ! -d venv ]; then
+  echo "Creating virtual environment (venv)"
   python3 -m venv venv
 else
-  echo "Virtual environment already exists; skipping creation."
+  echo "Virtual environment already exists; skipping."
 fi
 
-# Install dependencies using the venv's pip
-echo "Installing dependencies from requirements-cpu.txt"
-"venv/bin/pip" install --upgrade pip
-"venv/bin/pip" install -r requirements-cpu.txt
+# Dependencies
+echo "Installing dependencies (CPU-only)"
+venv/bin/pip install --upgrade pip
+venv/bin/pip install -r requirements-cpu.txt
 
-echo "Setup complete. To activate the environment, run:"
+# Done
+echo
+echo "Setup complete!"
+echo
+echo "Next steps:"
+echo "  cd \"$REPO_DIR\""
 echo "  source venv/bin/activate"
-
-SCRIPT_PATH="$(readlink -f "$0")"
-rm -f "$SCRIPT_PATH"

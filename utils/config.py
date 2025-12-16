@@ -43,13 +43,9 @@ EXTERNAL_API_URL = os.getenv(
 EXTERNAL_API_KEY = os.getenv("EXTERNAL_API_KEY") or os.getenv("OPENAI_API_KEY", "")
 
 # Model configuration
-CHAT_MODEL = os.getenv(
-    "CHAT_MODEL", "llama3.1"
-)  # For Ollama: "llama3.1", For OpenAI: "gpt-4", "gpt-3.5-turbo"
+CHAT_MODEL = os.getenv("CHAT_MODEL", "llama3.1")  # Defautlt to llama3.1
 CHAT_CTX_WINDOW = int(os.getenv("CHAT_CTX_WINDOW", "16000"))
-HELPER_MODEL = os.getenv(
-    "HELPER_MODEL", "mistral"
-)  # For Ollama: "mistral", For OpenAI: "gpt-3.5-turbo"
+HELPER_MODEL = os.getenv("HELPER_MODEL", CHAT_MODEL)  # Default to same as CHAT_MODEL
 HELPER_CTX_WINDOW = int(os.getenv("HELPER_CTX_WINDOW", "4096"))
 HISTORY_LENGTH = int(os.getenv("HISTORY_LENGTH", "4"))
 
@@ -58,7 +54,7 @@ LINK_MODE = os.getenv("LINK_MODE", "wiki")  # one of: wiki | title | url | strip
 INTERNAL_LINK_RE = re.compile(r"^[./]*([^?#]+\.html)(?:[#?].*)?$", re.I)
 
 # Global flags
-BOT_NAME = os.getenv("BOT_NAME", "ICHIRO Assistant")
+BOT_NAME = os.getenv("BOT_NAME", "Kaito")
 KEEP_INDEX = os.getenv("KEEP_INDEX", "False").lower() in ("true", "1", "yes")
 VERBOSE = os.getenv("VERBOSE", "False").lower() in ("true", "1", "yes")
 MODE = int(os.getenv("MODE", "1"))  # 1: search mode, 2: ask mode, 3: teach mode
