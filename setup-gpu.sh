@@ -5,7 +5,7 @@ set -euo pipefail
 REPO_URL="https://github.com/masterzaff/agentic-rag-ichiro.git"
 
 # Derive repo directory name from URL (strip trailing .git if present)
-REPO_DIR="$(basename "${REPO_URL%/.git}")"
+REPO_DIR="$(basename "${REPO_URL%.git}")"
 
 # Clone if the directory does not already exist
 if [ ! -d "$REPO_DIR" ]; then
